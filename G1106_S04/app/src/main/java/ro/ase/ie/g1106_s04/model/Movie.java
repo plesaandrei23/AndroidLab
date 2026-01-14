@@ -8,41 +8,45 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.Index;
-import androidx.room.TypeConverters;
 
-import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 
-import ro.ase.ie.g1106_s04.database.DateTimeConverter;
-
 @Entity(tableName = "MovieTable",
         primaryKeys = {"release", "movieTitle"},
-        indices = {@Index("release"),@Index("movieTitle")}
+        indices = {@Index("release"), @Index("movieTitle")}
 )
-
 public class Movie implements Parcelable {
     @NonNull
     @ColumnInfo(name = "movieTitle")
-    private String title; //EditText (PlainText)
+    private String title;
+
     @ColumnInfo
-    private Double budget; //EditText (Number)
+    private Double budget;
+
     @NonNull
+    @ColumnInfo(name = "release")
+    private Date release;
+
     @ColumnInfo
-    @TypeConverters(DateTimeConverter.class)
-    private Date release; //EditText (Date)
+    private Integer duration;
+
     @ColumnInfo
-    private Integer duration; //SeekBar
-    @ColumnInfo
-    private GenreEnum genre; // Spinner
+    private GenreEnum genre;
+
     @Ignore
-    private ParentalGuidanceEnum pGuidance; //RadioButtons with RadioGroup
+    private ParentalGuidanceEnum pGuidance;
+
     @ColumnInfo
-    private Float rating; // RatingBar
+    private Float rating;
+
     @ColumnInfo
-    private Boolean watched; //Switch
+    private Boolean watched;
+
     @ColumnInfo
-    private String posterUrl; //EditText
+    private String posterUrl;
+
+    public Movie() {}
 
     protected Movie(Parcel in) {
         title = in.readString();
@@ -64,8 +68,12 @@ public class Movie implements Parcelable {
         byte tmpWatched = in.readByte();
         watched = tmpWatched == 0 ? null : tmpWatched == 1;
         posterUrl = in.readString();
-        genre = GenreEnum.valueOf(in.readString());
-        pGuidance = ParentalGuidanceEnum.valueOf(in.readString());
+
+        String genreStr = in.readString();
+        genre = genreStr != null ? GenreEnum.valueOf(genreStr) : null;
+
+        String pGuidanceStr = in.readString();
+        pGuidance = pGuidanceStr != null ? ParentalGuidanceEnum.valueOf(pGuidanceStr) : null;
 
         if(in.readByte() == 0)
             release = null;
@@ -78,96 +86,11 @@ public class Movie implements Parcelable {
         public Movie createFromParcel(Parcel in) {
             return new Movie(in);
         }
-
         @Override
         public Movie[] newArray(int size) {
             return new Movie[size];
         }
     };
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setBudget(Double budget) {
-        this.budget = budget;
-    }
-
-    public void setRelease(Date release) {
-        this.release = release;
-    }
-
-    public void setDuration(Integer duration) {
-        this.duration = duration;
-    }
-
-    public void setGenre(GenreEnum genre) {
-        this.genre = genre;
-    }
-
-    public void setpGuidance(ParentalGuidanceEnum pGuidance) {
-        this.pGuidance = pGuidance;
-    }
-
-    public void setRating(Float rating) {
-        this.rating = rating;
-    }
-
-    public void setWatched(Boolean watched) {
-        this.watched = watched;
-    }
-
-    public void setPosterUrl(String posterUrl) {
-        this.posterUrl = posterUrl;
-    }
-
-    public Movie(String title, Double budget, Date release, Integer duration, GenreEnum genre, ParentalGuidanceEnum pGuidance, Float rating, Boolean watched, String posterUrl) {
-        this.title = title;
-        this.budget = budget;
-        this.release = release;
-        this.duration = duration;
-        this.genre = genre;
-        this.pGuidance = pGuidance;
-        this.rating = rating;
-        this.watched = watched;
-        this.posterUrl = posterUrl;
-    }
-
-    public Movie() {
-
-    }
-
-    @Override
-    public String toString() {
-        return "Movie{" +
-                "title='" + title + '\'' +
-                ", budget=" + budget +
-                ", release=" + release +
-                ", duration=" + duration +
-                ", genre=" + genre +
-                ", pGuidance=" + pGuidance +
-                ", rating=" + rating +
-                ", watched=" + watched +
-                ", posterUrl='" + posterUrl + '\'' +
-                '}';
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof Movie)) return false;
-        Movie movie = (Movie) o;
-        return Objects.equals(getTitle(), movie.getTitle()) && Objects.equals(getRelease(), movie.getRelease());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getTitle(), getRelease());
-    }
 
     @Override
     public void writeToParcel(@NonNull Parcel parcel, int i) {
@@ -192,8 +115,8 @@ public class Movie implements Parcelable {
         }
         parcel.writeByte((byte) (watched == null ? 0 : watched ? 1 : 2));
         parcel.writeString(posterUrl);
-        parcel.writeString(genre.toString());
-        parcel.writeString(pGuidance.toString());
+        parcel.writeString(genre != null ? genre.name() : null);
+        parcel.writeString(pGuidance != null ? pGuidance.name() : null);
 
         if(release == null)
             parcel.writeByte((byte)0);
@@ -203,39 +126,43 @@ public class Movie implements Parcelable {
         }
     }
 
-    public String getTitle() {
-        return title;
+    @Override
+    public int describeContents() { return 0; }
+
+    // Getters and Setters
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public Double getBudget() { return budget; }
+    public void setBudget(Double budget) { this.budget = budget; }
+    public Date getRelease() { return release; }
+    public void setRelease(Date release) { this.release = release; }
+    public Integer getDuration() { return duration; }
+    public void setDuration(Integer duration) { this.duration = duration; }
+    public GenreEnum getGenre() { return genre; }
+    public void setGenre(GenreEnum genre) { this.genre = genre; }
+    public ParentalGuidanceEnum getpGuidance() { return pGuidance; }
+    public void setpGuidance(ParentalGuidanceEnum pGuidance) { this.pGuidance = pGuidance; }
+    public Float getRating() { return rating; }
+    public void setRating(Float rating) { this.rating = rating; }
+    public Boolean getWatched() { return watched; }
+    public void setWatched(Boolean watched) { this.watched = watched; }
+    public String getPosterUrl() { return posterUrl; }
+    public void setPosterUrl(String posterUrl) { this.posterUrl = posterUrl; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Movie)) return false;
+        Movie movie = (Movie) o;
+        return Objects.equals(title, movie.title) && Objects.equals(release, movie.release);
     }
 
-    public Double getBudget() {
-        return budget;
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, release);
     }
 
-    public Date getRelease() {
-        return release;
-    }
-
-    public Integer getDuration() {
-        return duration;
-    }
-
-    public GenreEnum getGenre() {
-        return genre;
-    }
-
-    public ParentalGuidanceEnum getpGuidance() {
-        return pGuidance;
-    }
-
-    public Float getRating() {
-        return rating;
-    }
-
-    public Boolean getWatched() {
-        return watched;
-    }
-
-    public String getPosterUrl() {
-        return posterUrl;
+    @Override
+    public String toString() {
+        return "Movie{" + "title='" + title + '\'' + ", release=" + release + '}';
     }
 }

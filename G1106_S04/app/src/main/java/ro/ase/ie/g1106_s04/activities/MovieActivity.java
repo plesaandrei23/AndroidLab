@@ -210,6 +210,10 @@ public class MovieActivity extends AppCompatActivity {
                 return ValidationResult.error(Field.POSTER, "Poster URL has incorrect format!");
         }
 
+
+        if(rgGuidance.getCheckedRadioButtonId() == -1){
+            return ValidationResult.error(Field.GENERIC, "Please select a parental guidance rating!");
+        }
         int id = rgGuidance.getCheckedRadioButtonId();
         RadioButton radioButton = findViewById(id);
         String guidance = radioButton.getText().toString();

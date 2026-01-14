@@ -2,6 +2,8 @@ package ro.ase.ie.g1106_s04.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,14 +20,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import ro.ase.ie.g1106_s04.R;
 import ro.ase.ie.g1106_s04.adapters.MovieAdapter;
 import ro.ase.ie.g1106_s04.database.DatabaseManager;
 import ro.ase.ie.g1106_s04.database.MovieDAO;
+import ro.ase.ie.g1106_s04.model.GenreEnum;
 import ro.ase.ie.g1106_s04.model.Movie;
+import ro.ase.ie.g1106_s04.model.ParentalGuidanceEnum;
+import ro.ase.ie.g1106_s04.networking.HttpManager;
 
 public class MainActivity extends AppCompatActivity implements IMovieEventListener{
 
@@ -50,9 +65,14 @@ public class MainActivity extends AppCompatActivity implements IMovieEventListen
         });
         movieAdapter=new MovieAdapter(this,movieList);
         recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(movieAdapter);
         databaseManager = DatabaseManager.getInstance(getApplicationContext());
         movieTable = databaseManager.getMovieDao();
+        List<Movie> allMovies = databaseManager.getMovieDao().getAllMovies();
+        movieList.addAll(allMovies);
+        movieAdapter.notifyDataSetChanged();
+        fetchMovies();
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                 new ActivityResultCallback<ActivityResult>() {
                     @Override
@@ -119,5 +139,84 @@ public class MainActivity extends AppCompatActivity implements IMovieEventListen
         movieAdapter.notifyDataSetChanged();
     }
 
+    private List<Movie> parseMovies(String jsonResult){
+        List<Movie> list = new ArrayList<>();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+
+        try {
+            JSONArray array = new JSONArray(jsonResult);
+            for(int i = 0; i < array.length(); i++){
+                JSONObject obj = array.getJSONObject(i);
+
+                String title = obj.getString("title");
+                double budget = obj.getDouble("budget");
+                // Correct Date Parsing
+                String releaseStr = obj.getString("release");
+                Date release = null;
+                try {
+                    release = sdf.parse(releaseStr);
+                } catch (java.text.ParseException e) {
+                    e.printStackTrace();
+                    release = new Date(); // Fallback to current date or handle appropriate error
+                }
+
+                double rating = obj.getDouble("rating");
+                String poster = obj.getString("poster");
+                int duration = obj.getInt("duration");
+                String genre = obj.getString("genre");
+                boolean watched = obj.getBoolean("watched");
+                String guidance = obj.getString("guidance");
+
+                Movie movie = new Movie();
+                movie.setTitle(title);
+                movie.setBudget(budget);
+                movie.setRelease(release);
+                movie.setRating((float) rating);
+                movie.setPosterUrl(poster);
+                movie.setDuration(duration);
+                movie.setGenre(GenreEnum.valueOf(genre));
+                movie.setWatched(watched);
+                movie.setpGuidance(ParentalGuidanceEnum.valueOf(guidance));
+
+                list.add(movie);
+
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private void fetchMovies(){
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler handler = new Handler(Looper.getMainLooper());
+        executor.execute( () -> {
+
+            HttpManager manager = new HttpManager("https://jsonkeeper.com/b/FLBCO");
+            String result = manager.process();
+            List<Movie> newMovies = parseMovies(result);
+            
+            // SAVE TO DATABASE (Background)
+            for(Movie m : newMovies){
+                databaseManager.getMovieDao().insertMovie(m);
+            }
+            
+            // READ FROM DATABASE (Background) - Get the fresh list including what we just saved
+            List<Movie> allMovies = databaseManager.getMovieDao().getAllMovies();
+
+            handler.post( ()-> {
+                // UPDATE UI (Foreground)
+                movieList.clear();
+                movieList.addAll(allMovies);
+                movieAdapter.notifyDataSetChanged();
+                Toast.makeText(this, "Updated!", Toast.LENGTH_SHORT).show();
+            });
+
+        });
+    }
+
 
 }
+
+

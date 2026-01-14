@@ -5,10 +5,12 @@ import android.content.Context;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.TypeConverters;
 
 import ro.ase.ie.g1106_s04.model.Movie;
 
 @Database(entities = {Movie.class}, version = 1, exportSchema = false)
+@TypeConverters({DateTimeConverter.class})
 public abstract class DatabaseManager extends RoomDatabase{
     private final static String databaseName = "database";
     private static volatile DatabaseManager databaseInstance;
